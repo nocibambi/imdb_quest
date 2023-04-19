@@ -22,6 +22,24 @@ MovieSchema: pd.DataFrame = pa.DataFrameSchema(
 def scraper(
     top_number: int = 20,
 ) -> pd.DataFrame:
+    """Scrape top movies from IMDB.
+
+    Dimensions to collect:
+    - title
+    - rating
+    - number of ratings
+    - number of oscars
+
+    Parameters
+    ----------
+    top_number : int, optional
+        Determines the number of top movies to scrape, by default 20
+
+    Returns
+    -------
+    pd.DataFrame
+        The collected information of the top imdb movies.
+    """
     imdb_top_url = "https://www.imdb.com/chart/top/"
     headers = {"Accept-Language": "en-US,en;q=0.5"}
 
@@ -76,6 +94,18 @@ def scraper(
 
 
 def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
+    """Adjust rating based on number of ratings.
+
+    Parameters
+    ----------
+    movies_df : pd.DataFrame
+        Movie information. Has to have a "number of ratings" column.
+
+    Returns
+    -------
+    pd.Series
+        Rating adjustments calculated based on the number of ratings.
+    """
     max_number_of_ratings: int = movies_df["number of ratings"].max()
     review_penalties: pd.Series = (
         (max_number_of_ratings - movies_df["number of ratings"]) // 100e3
@@ -88,6 +118,18 @@ def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
 
 
 def oscar_calculator(top_movies: pd.DataFrame) -> pd.Series:
+    """Adjust rating based on number of oscars.
+
+    Parameters
+    ----------
+    top_movies : pd.DataFrame
+        Movie information. Has to have a "number of oscars" column.
+
+    Returns
+    -------
+    pd.Series
+        Rating adjustments based on number of oscars.
+    """
     points_by_oscars: dict[tuple, float] = {
         (0, 1): 0,
         (1, 3): 0.3,
