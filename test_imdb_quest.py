@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from imdb_quest import scraper, review_penalizer, oscar_calculator
+from imdb_quest import scraper, adjust_by_number_of_rankings, adjust_by_number_of_oscars
 
 
 @pytest.fixture

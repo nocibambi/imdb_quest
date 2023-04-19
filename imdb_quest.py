@@ -1,21 +1,25 @@
 # %%
+from dotenv import load_dotenv
+import os
+
 import pandas as pd
 from requests import request
 from bs4 import BeautifulSoup
-import os
 import numpy as np
 import pandera as pa
-from dotenv import load_dotenv
+
 
 # %%
-load_dotenv()
 MovieSchema: pd.DataFrame = pa.DataFrameSchema(
     {
-        "rating": pa.Column(float, checks=pa.Check.le(10)),
-        "number of ratings": pa.Column(int, checks=pa.Check.between(100e3, 3e6)),
+        "rating": pa.Column(float, checks=pa.Check.le(10), nullable=False),
+        "number of ratings": pa.Column(
+            int, checks=pa.Check.between(100e3, 3e6), nullable=False
+        ),
         "number of oscars": pa.Column(int, checks=pa.Check.le(11)),
-        "title": pa.Column(str),
-    }
+        "title": pa.Column(str, unique=True, checks=pa.Check.ne("")),
+    },
+    strict=True,
 )
 
 
@@ -45,8 +49,7 @@ def scraper(
 
     source = request("GET", imdb_top_url, headers=headers)
     soup = BeautifulSoup(source.text, features="html.parser")
-    table = soup.find("table", attrs={"class": "chart full-width"})
-    table_body = table.find("tbody")
+    table_body = soup.find("table", attrs={"class": "chart full-width"}).find("tbody")
 
     movies_list: list[dict] = []
     rows = table_body.find_all("tr")
@@ -56,7 +59,7 @@ def scraper(
         imdb_id: str = title_column.find("a").attrs["href"].split("/")[-2]
 
         try:
-            awards_url: str = f"https://www.imdb.com/title/{imdb_id}/awards/"
+            awards_url = f"https://www.imdb.com/title/{imdb_id}/awards/"
             awards: list[pd.DataFrame] = pd.read_html(awards_url)
             number_of_oscars: int = sum(
                 [(award.loc[:, 0] == "Winner  Oscar").sum() for award in awards]
@@ -93,7 +96,7 @@ def scraper(
 # %%
 
 
-def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
+def adjust_by_number_of_rankings(movies_df: pd.DataFrame) -> pd.Series:
     """Adjust rating based on number of ratings.
 
     Parameters
@@ -107,17 +110,13 @@ def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
         Rating adjustments calculated based on the number of ratings.
     """
     max_number_of_ratings: int = movies_df["number of ratings"].max()
-    review_penalties: pd.Series = (
-        (max_number_of_ratings - movies_df["number of ratings"]) // 100e3
-    ) * 0.1
-
-    return review_penalties
+    return -((max_number_of_ratings - movies_df["number of ratings"]) // 100e3) * 0.1
 
 
 # %%
 
 
-def oscar_calculator(top_movies: pd.DataFrame) -> pd.Series:
+def adjust_by_number_of_oscars(top_movies: pd.DataFrame) -> pd.Series:
     """Adjust rating based on number of oscars.
 
     Parameters
@@ -154,19 +153,24 @@ def oscar_calculator(top_movies: pd.DataFrame) -> pd.Series:
 
 # %%
 if __name__ == "__main__":
+    load_dotenv()
     movies_path: str = os.environ["MOVIES_PATH"]
+    top_number = int(os.environ["TOP_NUMBER"])
 
-    top_movies: pd.DataFrame = scraper(top_number=20)
-    review_penalties: pd.Series = review_penalizer(top_movies)
-    oscar_points: pd.Series = oscar_calculator(top_movies)
-    top_movies["adjusted rating"] = (
-        top_movies["rating"] - review_penalties + oscar_points
+    movies: pd.DataFrame = scraper(top_number=top_number)
+    adjustment_by_number_of_rankings: pd.Series = adjust_by_number_of_rankings(movies)
+    adjustment_by_number_of_oscars: pd.Series = adjust_by_number_of_oscars(movies)
+    movies["adjusted rating"] = (
+        movies["rating"]
+        + adjustment_by_number_of_rankings
+        + adjustment_by_number_of_oscars
     )
+    movies = movies.sort_values("adjusted rating", ascending=False)
 
     MovieSchemaAdjusted = MovieSchema.add_columns(
-        {"adjusted rating": pa.Column(float, checks=pa.Check.le(11.5))}
+        {"adjusted rating": pa.Column(float, checks=pa.Check.le(11.5), ordered=True)}
     )
-    MovieSchemaAdjusted.validate(top_movies)
+    MovieSchemaAdjusted.validate(movies)
 
-    top_movies.sort_values("adjusted rating", ascending=False).to_json(movies_path)
+    movies.to_json(movies_path)
 # %%
