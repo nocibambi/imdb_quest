@@ -168,7 +168,7 @@ if __name__ == "__main__":
     movies = movies.sort_values("adjusted rating", ascending=False)
 
     MovieSchemaAdjusted = MovieSchema.add_columns(
-        {"adjusted rating": pa.Column(float, checks=pa.Check.le(11.5), ordered=True)}
+        {"adjusted rating": pa.Column(float, checks=pa.Check.le(11.5))}
     )
     MovieSchemaAdjusted.validate(movies)
 
