@@ -111,3 +111,20 @@ def oscar_calculator(top_movies: pd.DataFrame) -> pd.Series:
 
 
 # %%
+if __name__ == "__main__":
+    movies_path: str = os.environ["MOVIES_PATH"]
+
+    top_movies: pd.DataFrame = scraper(top_number=20)
+    review_penalties: pd.Series = review_penalizer(top_movies)
+    oscar_points: pd.Series = oscar_calculator(top_movies)
+    top_movies["adjusted rating"] = (
+        top_movies["rating"] - review_penalties + oscar_points
+    )
+
+    MovieSchemaAdjusted = MovieSchema.add_columns(
+        {"adjusted rating": pa.Column(float, checks=pa.Check.le(11.5))}
+    )
+    MovieSchemaAdjusted.validate(top_movies)
+
+    top_movies.sort_values("adjusted rating", ascending=False).to_json(movies_path)
+# %%
