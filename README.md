@@ -20,12 +20,20 @@ You can define some parameters in `.env`:
 
 ## Running the script
 
+`imdb_quest.py` contains the mains script including the three functions.
+
+### From shell
+
 ```shell
 python -m imdb_quest
 ```
 
+### From IDE
+
+`imdb_quest.py` uses the [Jupytext percentage format](https://jupytext.readthedocs.io/en/latest/formats.html#the-percent-format). This allows you to run the script interactively in IDEs like VSCode.
+
 ## Tests
 
 ```shell
-pytest
+pytest test_imdb_quest.py
 ```
