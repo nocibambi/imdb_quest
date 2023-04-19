@@ -72,3 +72,15 @@ def scraper(
     return MovieSchema.validate(pd.DataFrame(movies_list))
 
 
+# %%
+
+
+def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
+    max_number_of_ratings: int = movies_df["number of ratings"].max()
+    review_penalties: pd.Series = (
+        (max_number_of_ratings - movies_df["number of ratings"]) // 100e3
+    ) * 0.1
+
+    return review_penalties
+
+
