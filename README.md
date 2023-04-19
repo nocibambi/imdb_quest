@@ -11,9 +11,14 @@ poetry shell
 poetry install
 ```
 
-## Running the script
+## Parameters
 
-### From the shell
+You can define some parameters in `.env`:
+
+- `MOVIES_PATH`: the path and filename of the results
+- `TOP_NUMBER`: the number of top movies to collect information about
+
+## Running the script
 
 ```shell
 python -m imdb_quest
