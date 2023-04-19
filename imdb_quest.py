@@ -84,3 +84,30 @@ def review_penalizer(movies_df: pd.DataFrame) -> pd.Series:
     return review_penalties
 
 
+# %%
+
+
+def oscar_calculator(top_movies: pd.DataFrame) -> pd.Series:
+    points_by_oscars: dict[tuple, float] = {
+        (0, 1): 0,
+        (1, 3): 0.3,
+        (3, 6): 0.5,
+        (6, 11): 1,
+        (11, np.inf): 1.5,
+    }
+
+    return (
+        pd.cut(
+            top_movies["number of oscars"], bins=[0, 1, 3, 6, 11, np.inf], right=False
+        )
+        .map(
+            {
+                pd.Interval(interval[0], interval[1], closed="left"): point
+                for interval, point in points_by_oscars.items()
+            }
+        )
+        .astype(float)
+    )
+
+
+# %%
