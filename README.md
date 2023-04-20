@@ -20,7 +20,7 @@ You can define some parameters in `.env`:
 
 ## Running the script
 
-`imdb_quest.py` contains the mains script including the three functions.
+`imdb_quest.py` contains the main script including the three functions.
 
 ### From shell
 
